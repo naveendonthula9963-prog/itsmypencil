@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ITS MY PENCIL — ARTS OF NDN</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Inter:wght@400;500;600;700&family=Patrick+Hand&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --paper-bg: #faf8f3;
+            --desk-bg: #e8e4dc;
+            --panel-bg: #f4f1ea;
+            --ink-border: #3a3835;
+            --ink-muted: #6b6761;
+            --accent-wood: #d6a874;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--desk-bg);
+            color: #242321;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        .sketch-font {
+            font-family: 'Architects Daughter', cursive;
+        }
+
+        .hand-font {
+            font-family: 'Patrick Hand', cursive;
+        }
+
+        /* Subtle paper texture overlay for UI panels */
+        .panel-texture {
+            background-color: var(--panel-bg);
+            background-image: radial-gradient(rgba(58, 56, 53, 0.04) 1px, transparent 0);
+            background-size: 14px 14px;
+        }
+
+        /* Realistic Fine Tooth Sketchbook Paper */
+        .paper-surface {
+            background-color: var(--paper-bg);
+            box-shadow: 
+                0 10px 30px rgba(0, 0, 0, 0.08),
+                0 1px 4px rgba(0, 0, 0, 0.06),
+                inset 0 0 40px rgba(215, 206, 190, 0.35);
+            position: relative;
+        }
+
+        /* Custom scrollbar for sidebar on smaller heights */
+        .custom-scroll::-webkit-scrollbar {
+            width: 5px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.04);
+            border-radius: 999px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: rgba(58, 56, 53, 0.25);
+            border-radius: 999px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+            background: rgba(58, 56, 53, 0.45);
+        }
+
+        /* Sketchy hand-crafted button styling */
+        .grade-btn {
+            border: 1.5px solid #4a4743;
+            background: #fdfcf9;
+            transition: all 0.14s cubic-bezier(0.2, 0.8, 0.2, 1);
+            box-shadow: 1px 1px 0px rgba(58, 56, 53, 0.2);
+        }
+        .grade-btn:hover {
+            background: #f0ece1;
+            transform: translateY(-1px);
+        }
+        .grade-btn.active {
+            background: #2b2927;
+            color: #faf8f3;
+            border-color: #1a1918;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.4);
+            transform: translateY(0);
+        }
+
+        /* Custom Range Slider */
+        input[type="range"].lead-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+            cursor: pointer;
+        }
+        input[type="range"].lead-slider::-webkit-slider-runnable-track {
+            height: 5px;
+            background: #4a4743;
+            border-radius: 999px;
+        }
+        input[type="range"].lead-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #242321;
+            border: 2px solid #faf8f3;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+            margin-top: -5.5px;
+            transition: transform 0.12s ease;
+        }
+        input[type="range"].lead-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+
+        /* Color Swatch Ring */
+        .color-swatch {
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .color-swatch:hover {
+            transform: scale(1.12);
+        }
+        .color-swatch.active {
+            transform: scale(1.15);
+            box-shadow: 0 0 0 2px #faf8f3, 0 0 0 4px #242321;
+        }
+
+        /* Shape Icon Buttons */
+        .shape-btn {
+            border: 1.5px solid transparent;
+            transition: all 0.14s ease;
+        }
+        .shape-btn:hover {
+            background: rgba(58, 56, 53, 0.08);
+            border-color: rgba(58, 56, 53, 0.3);
+        }
+        .shape-btn.active {
+            background: #2b2927;
+            color: #faf8f3;
+            border-color: #2b2927;
+        }
+
+        /* Canvas crosshair */
+        #drawingCanvas, #previewCanvas {
+            touch-action: none;
+            cursor: crosshair;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-2 sm:p-3 lg:p-4">
+
+    <!-- 16:9 Main Sketchbook Frame -->
+    <div id="appShell" class="w-full max-w-[1600px] lg:aspect-video bg-[#f7f4ec] border-2 border-[#3a3835] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+        
+        <!-- Top Header Bar -->
+        <header class="w-full bg-[#efeae0] border-b-2 border-[#3a3835] px-4 py-2 sm:px-6 sm:py-2.5 flex flex-wrap items-center justify-between gap-2 shrink-0">
+            <!-- Brand Title & Subtitle matching sketch -->
+            <div class="flex items-baseline gap-3 sm:gap-5">
+                <h1 class="sketch-font text-xl sm:text-2xl lg:text-[26px] font-bold tracking-wider text-[#1f1e1c] uppercase leading-none">
+                    ITS MY PENCIL
+                </h1>
+                <span class="hand-font text-sm sm:text-base lg:text-lg tracking-widest text-[#524f4a] font-semibold uppercase">
+                    ARTS OF NDN
+                </span>
+                <span class="hidden md:inline-block text-[11px] font-mono px-2 py-0.5 rounded-full bg-[#e3ddd0] text-[#5c5852] border border-[#c5beb0]">
+                    16 × 9 STUDIO
+                </span>
+            </div>
+
+            <!-- Action Controls -->
+            <div class="flex items-center gap-1.5 sm:gap-2">
+                <!-- Active Tool Pill Indicator -->
+                <div id="activeToolBadge" class="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#faf8f3] border border-[#b8b1a4] text-xs font-medium text-[#3a3835] mr-1">
+                    <span id="activeToolDot" class="w-2.5 h-2.5 rounded-full bg-[#3d3d3d]"></span>
+                    <span id="activeToolLabel">Graphite • HB</span>
+                </div>
+
+                <!-- Undo -->
+                <button id="undoBtn" title="Undo (Ctrl+Z)" class="p-2 sm:px-3 sm:py-1.5 rounded-xl bg-[#faf8f3] hover:bg-[#e8e2d5] active:scale-95 border border-[#3a3835] text-[#242321] text-xs sm:text-sm font-medium flex items-center gap-1.5 transition disabled:opacity-40 disabled:pointer-events-none">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+                    <span class="hidden md:inline">Undo</span>
+                </button>
+
+                <!-- Redo -->
+                <button id="redoBtn" title="Redo (Ctrl+Y)" class="p-2 sm:px-3 sm:py-1.5 rounded-xl bg-[#faf8f3] hover:bg-[#e8e2d5] active:scale-95 border border-[#3a3835] text-[#242321] text-xs sm:text-sm font-medium flex items-center gap-1.5 transition disabled:opacity-40 disabled:pointer-events-none">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"/></svg>
+                    <span class="hidden md:inline">Redo</span>
+                </button>
+
+                <!-- Eraser Toggle -->
+                <button id="eraserBtn" title="Kneaded Eraser" class="p-2 sm:px-3 sm:py-1.5 rounded-xl bg-[#faf8f3] hover:bg-[#e8e2d5] active:scale-95 border border-[#3a3835] text-[#242321] text-xs sm:text-sm font-medium flex items-center gap-1.5 transition">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>
+                    <span class="hidden sm:inline">Eraser</span>
+                </button>
+
+                <!-- Clear Paper -->
+                <button id="clearBtn" title="Clear Paper" class="p-2 sm:px-3 sm:py-1.5 rounded-xl bg-[#faf8f3] hover:bg-red-50 hover:border-red-700 hover:text-red-800 active:scale-95 border border-[#3a3835] text-[#242321] text-xs sm:text-sm font-medium flex items-center gap-1.5 transition">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                    <span class="hidden sm:inline">Clear Paper</span>
+                </button>
+
+                <!-- Download PNG -->
+                <button id="saveBtn" title="Download Sketch PNG" class="p-2 sm:px-3.5 sm:py-1.5 rounded-xl bg-[#2b2927] hover:bg-[#1a1918] active:scale-95 border border-[#1a1918] text-[#faf8f3] text-xs sm:text-sm font-medium flex items-center gap-1.5 shadow-sm transition">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    <span class="hidden sm:inline">Save PNG</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Split Workspace (Paper ~73% | Tools ~27%) -->
+        <main class="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0">
+            
+            <!-- Left/Center Drawing Canvas Area -->
+            <section class="w-full lg:w-[73%] h-[58vh] sm:h-[64vh] lg:h-full p-2.5 sm:p-4 bg-[#e5e0d5] flex flex-col relative min-h-0">
+                <div id="paperContainer" class="paper-surface w-full h-full rounded-xl border-2 border-[#3a3835] overflow-hidden relative">
+                    <!-- "Paper" watermark label matching top-left of sketch -->
+                    <div class="pointer-events-none absolute top-2.5 left-3.5 z-10 flex items-center gap-2 opacity-65">
+                        <span class="hand-font text-base sm:text-lg text-[#5c5852] tracking-wide font-semibold">Paper</span>
+                        <span id="shapeHintBanner" class="hidden text-xs bg-[#2b2927] text-[#faf8f3] px-2 py-0.5 rounded-md font-sans">
+                            Drag on paper to draw shape • Click Freehand to return
+                        </span>
+                    </div>
+
+                    <!-- Permanent Artwork Canvas -->
+                    <canvas id="drawingCanvas" class="absolute inset-0 w-full h-full block"></canvas>
+                    
+                    <!-- Temporary Overlay Canvas for 2D Shape Drag Preview & Brush Cursor Ring -->
+                    <canvas id="previewCanvas" class="absolute inset-0 w-full h-full block"></canvas>
+                </div>
+            </section>
+
+            <!-- Right Sidebar Tool Panel (~27%) -->
+            <aside class="w-full lg:w-[27%] lg:h-full panel-texture border-t-2 lg:border-t-0 lg:border-l-2 border-[#3a3835] p-3 sm:p-3.5 flex flex-col justify-between gap-2.5 overflow-y-auto custom-scroll">
+                
+                <div class="space-y-2.5">
+                    <!-- 1. GRAPHITE SECTION -->
+                    <div class="bg-[#faf8f3] border-2 border-[#3a3835] rounded-xl p-2.5 shadow-sm">
+                        <div class="flex items-center justify-between border-b border-[#d6d0c4] pb-1.5 mb-2">
+                            <span class="sketch-font font-bold text-sm sm:text-base tracking-wider text-[#242321] uppercase">
+                                GRAPHITE
+                            </span>
+                            <button id="toggleGraphiteBtn" title="Collapse/Expand Graphite" class="w-6 h-6 rounded-md border border-[#3a3835] bg-[#efeae0] hover:bg-[#e2dbd0] flex items-center justify-center text-xs font-bold text-[#242321] transition">
+                                ✕
+                            </button>
+                        </div>
+
+                        <div id="graphiteBody" class="space-y-2 transition-all">
+                            <!-- Hard Pencils (2x5 grid: H..5H / 6H..10H) -->
+                            <div>
+                                <div class="flex items-center justify-between mb-1">
+                                    <span class="hand-font text-xs sm:text-sm font-semibold text-[#524f4a]">Hard Pencils</span>
+                                    <span class="text-[10px] text-[#7c776f]">Light & Crisp</span>
+                                </div>
+                                <div id="hardPencilsGrid" class="grid grid-cols-5 gap-1">
+                                    <!-- Populated by JS -->
+                                </div>
+                            </div>
+
+                            <!-- Medium Pencils (HB, F) -->
+                            <div>
+                                <div class="flex items-center justify-between mb-1">
+                                    <span class="hand-font text-xs sm:text-sm font-semibold text-[#524f4a]">Medium</span>
+                                    <span class="text-[10px] text-[#7c776f]">Balanced</span>
+                                </div>
+                                <div id="mediumPencilsGrid" class="grid grid-cols-2 gap-1.5">
+                                    <!-- Populated by JS -->
+                                </div>
+                            </div>
+
+                            <!-- Soft Pencils (2x5 grid: B..5B / 6B..10B) -->
+                            <div>
+                                <div class="flex items-center justify-between mb-1">
+                                    <span class="hand-font text-xs sm:text-sm font-semibold text-[#524f4a]">Soft</span>
+                                    <span class="text-[10px] text-[#7c776f]">Dark & Rich</span>
+                                </div>
+                                <div id="softPencilsGrid" class="grid grid-cols-5 gap-1">
+                                    <!-- Populated by JS -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. CHARCOAL SECTION -->
+                    <div class="bg-[#faf8f3] border-2 border-[#3a3835] rounded-xl p-2.5 shadow-sm">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="sketch-font font-bold text-xs sm:text-sm tracking-wider text-[#242321] uppercase">
+                                CHARCOAL
+                            </span>
+                            <span class="text-[10px] text-[#7c776f]">Grainy & Expressive</span>
+                        </div>
+                        <div id="charcoalGrid" class="grid grid-cols-3 gap-1.5">
+                            <!-- Populated by JS: Soft, Medium, Hard -->
+                        </div>
+                    </div>
+
+                    <!-- 3. SIZE OF LID (Lead Size) -->
+                    <div class="bg-[#faf8f3] border-2 border-[#3a3835] rounded-xl p-2.5 shadow-sm">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label for="leadSizeSlider" class="hand-font text-sm sm:text-base font-bold text-[#242321]">
+                                Size of Lid
+                            </label>
+                            <div class="flex items-center gap-1.5">
+                                <!-- Visual Lead Dot Preview -->
+                                <div class="w-6 h-6 rounded-md bg-[#efeae0] border border-[#b8b1a4] flex items-center justify-center">
+                                    <span id="leadDotPreview" class="rounded-full bg-[#242321] block" style="width: 4px; height: 4px;"></span>
+                                </div>
+                                <!-- Percentage Readout Box matching sketch -->
+                                <span id="leadSizeReadout" class="font-mono text-xs font-bold px-2 py-0.5 rounded-md border border-[#3a3835] bg-[#efeae0] text-[#242321] min-w-[44px] text-center">
+                                    10%
+                                </span>
+                            </div>
+                        </div>
+                        <input id="leadSizeSlider" type="range" min="1" max="100" value="10" class="lead-slider w-full">
+                    </div>
+
+                    <!-- 4. COLOUR PENCILS SECTION -->
+                    <div class="bg-[#faf8f3] border-2 border-[#3a3835] rounded-xl p-2.5 shadow-sm">
+                        <div class="flex items-center justify-between border-b border-[#d6d0c4] pb-1 mb-2">
+                            <span class="hand-font font-bold text-sm sm:text-base text-[#242321]">
+                                Colour pencils
+                            </span>
+                            <button id="toggleColorBtn" title="Collapse/Expand Colour Pencils" class="w-5 h-5 rounded border border-[#3a3835] bg-[#efeae0] hover:bg-[#e2dbd0] flex items-center justify-center text-[11px] font-bold text-[#242321] transition">
+                                ✕
+                            </button>
+                        </div>
+                        <div id="colorPencilsBody" class="flex items-center justify-between gap-1.5 flex-wrap pt-0.5">
+                            <!-- Circular Swatches populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- 5. 2D SHAPES SECTION -->
+                    <div class="bg-[#faf8f3] border-2 border-[#3a3835] rounded-xl p-2.5 shadow-sm">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="hand-font font-bold text-sm sm:text-base text-[#242321]">
+                                2D Shapes
+                            </span>
+                            <button id="freehandModeBtn" class="text-[11px] px-2 py-0.5 rounded-md bg-[#2b2927] text-[#faf8f3] font-medium transition">
+                                Freehand Active
+                            </button>
+                        </div>
+                        <div id="shapesGrid" class="grid grid-cols-6 gap-1">
+                            <!-- 6 Shape icons matching the wireframe sketch -->
+                            <button data-shape="square" title="Rectangle / Square" class="shape-btn p-1.5 rounded-lg flex items-center justify-center">
+                                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16"/></svg>
+                            </button>
+                            <button data-shape="roundrect" title="Rounded Rectangle" class="shape-btn p-1.5 rounded-lg flex items-center justify-center">
+                                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="4"/></svg>
+                            </button>
+                            <button data-shape="circle" title="Circle / Ellipse" class="shape-btn p-1.5 rounded-lg flex items-center justify-center">
+                                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/></svg>
+                            </button>
+                            <button data-shape="triangle" title="Triangle" class="shape-btn p-1.5 rounded-lg flex items-center justify-center">
+                                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 4 20 19 4 19"/></svg>
+                            </button>
+                            <button data-shape="pentagon" title="Pentagon" class="shape-btn p-1.5 rounded-lg flex items-center justify-center">
+                                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 3 21 9.8 17.5 20 6.5 20 3 9.8"/></svg>
+                            </button>
+                            <button data-shape="hexagon" title="Hexagon" class="shape-btn p-1.5 rounded-lg flex items-center justify-center">
+                                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 3 20 7.5 20 16.5 12 21 4 16.5 4 7.5"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 6. BOTTOM REALISTIC PENCIL PREVIEW (Horizontal illustration matching bottom of sketch) -->
+                <div class="bg-[#faf8f3] border-2 border-[#3a3835] rounded-xl px-3 py-2 shadow-sm shrink-0">
+                    <div class="flex items-center justify-between text-[10px] text-[#6b6761] mb-1">
+                        <span class="uppercase tracking-wider font-semibold">Active Instrument</span>
+                        <span id="pencilSpecText" class="font-mono">HB • 10% Lead</span>
+                    </div>
+                    <!-- Dynamic SVG Horizontal Pencil Illustration -->
+                    <div class="w-full h-9 flex items-center justify-center">
+                        <svg id="pencilIllustration" viewBox="0 0 320 38" class="w-full h-full overflow-visible">
+                            <!-- Eraser Cap (Left) -->
+                            <rect id="svgEraserCap" x="6" y="10" width="22" height="18" rx="4" fill="#d98a8c" stroke="#2b2927" stroke-width="1.6"/>
+                            <!-- Metal Ferrule -->
+                            <rect id="svgFerrule" x="26" y="9.5" width="16" height="19" fill="#c7c3ba" stroke="#2b2927" stroke-width="1.6"/>
+                            <line x1="31" y1="10" x2="31" y2="28" stroke="#2b2927" stroke-width="1.2"/>
+                            <line x1="37" y1="10" x2="37" y2="28" stroke="#2b2927" stroke-width="1.2"/>
+                            
+                            <!-- Pencil Shaft / Barrel -->
+                            <rect id="svgBarrelMain" x="42" y="9.5" width="214" height="19" fill="#e5b84b" stroke="#2b2927" stroke-width="1.6"/>
+                            <!-- Facet Shading Lines for Hexagonal Pencil Realism -->
+                            <line x1="42" y1="15" x2="256" y2="15" stroke="rgba(255,255,255,0.35)" stroke-width="1.4"/>
+                            <line x1="42" y1="23" x2="256" y2="23" stroke="rgba(0,0,0,0.18)" stroke-width="1.4"/>
+
+                            <!-- Imprinted Grade Label on Barrel -->
+                            <text id="svgBarrelLabel" x="148" y="22.5" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="10.5" fill="#1f1e1c" letter-spacing="1">
+                                GRAPHITE • HB
+                            </text>
+
+                            <!-- Sharpened Cedar Wood Cone (Right) -->
+                            <polygon id="svgWoodCone" points="256,9.5 296,19 256,28.5" fill="#e7c39c" stroke="#2b2927" stroke-width="1.6" stroke-linejoin="round"/>
+                            <!-- Scalloped Collar Edge -->
+                            <path d="M256,9.5 Q260,12.5 256,15.5 Q260,19 256,22.5 Q260,25.5 256,28.5" fill="none" stroke="#2b2927" stroke-width="1.3"/>
+
+                            <!-- Sharpened Lead Tip -->
+                            <polygon id="svgLeadTip" points="285,16.4 298,19 285,21.6" fill="#3a3a3a" stroke="#2b2927" stroke-width="1.2" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                </div>
+
+            </aside>
+        </main>
+    </div>
+
+    <!-- Custom Non-Blocking Confirmation Modal (Never using alert/confirm) -->
+    <div id="clearModal" class="fixed inset-0 bg-black/45 backdrop-blur-[2px] z-50 hidden items-center justify-center p-4">
+        <div class="bg-[#faf8f3] border-2 border-[#3a3835] rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-red-100 border border-red-300 text-red-700 flex items-center justify-center font-bold">
+                    !
+                </div>
+                <div>
+                    <h3 class="sketch-font font-bold text-lg text-[#1f1e1c]">Fresh Sheet of Paper?</h3>
+                    <p class="text-xs text-[#5c5852]">This will clear your current drawing. You can still Undo right after.</p>
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 pt-1">
+                <button id="cancelClearBtn" class="px-4 py-1.5 rounded-xl border border-[#3a3835] bg-[#efeae0] hover:bg-[#e2dbd0] text-sm font-medium text-[#242321]">
+                    Keep Sketch
+                </button>
+                <button id="confirmClearBtn" class="px-4 py-1.5 rounded-xl bg-red-700 hover:bg-red-800 text-white text-sm font-medium shadow-sm">
+                    Clear Paper
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Banner -->
+    <div id="toastBanner" class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-[#242321] text-[#faf8f3] text-xs sm:text-sm px-4 py-2 rounded-full shadow-lg border border-[#4a4743] opacity-0 pointer-events-none transition-opacity duration-200 z-50">
+        Saved sketch to PNG
+    </div>
+
+    <script>
+        /**
+         * ITS MY PENCIL — ARTS OF NDN
+         * Realistic Graphite, Charcoal, Colored Pencil & 2D Shape Sketching Engine
+         */
+        (() => {
+            // --- 1. Tool Definitions & Authentic Material Properties ---
+            const HARD_GRADES = ['H', '2H', '3H', '4H', '5H', '6H', '7H', '8H', '9H', '10H'];
+            const MEDIUM_GRADES = ['HB', 'F'];
+            const SOFT_GRADES = ['B', '2B', '3B', '4B', '5B', '6B', '7B', '8B', '9B', '10B'];
+            const CHARCOAL_GRADES = ['Soft', 'Medium', 'Hard'];
+
+            const COLOR_SWATCHES = [
+                { name: 'Crimson Red', hex: '#c92a2a' },
+                { name: 'Burnt Orange', hex: '#d96b1e' },
+                { name: 'Golden Ochre', hex: '#d4a017' },
+                { name: 'Forest Green', hex: '#2b7a3d' },
+                { name: 'Cobalt Blue', hex: '#1f5aa6' },
+                { name: 'Royal Violet', hex: '#6a359c' },
+                { name: 'Raw Umber', hex: '#6e4228' }
+            ];
+
+            // Application State
+            const state = {
+                category: 'graphite',   // 'graphite' | 'charcoal' | 'color' | 'eraser'
+                grade: 'HB',            // 'H'..'10H', 'HB', 'F', 'B'..'10B', 'Soft', 'Medium', 'Hard', or color name
+                colorHex: '#3d3d3d',
+                leadSizePercent: 10,    // 1 to 100
+                activeShape: null,      // null (freehand) | 'square' | 'roundrect' | 'circle' | 'triangle' | 'pentagon' | 'hexagon'
+                isDrawing: false,
+                lastX: 0,
+                lastY: 0,
+                startX: 0,
+                startY: 0,
+                history: [],
+                redoStack: [],
+                maxHistory: 25
+            };
+
+            // DOM References
+            const paperContainer = document.getElementById('paperContainer');
+            const drawingCanvas = document.getElementById('drawingCanvas');
+            const previewCanvas = document.getElementById('previewCanvas');
+            const ctx = drawingCanvas.getContext('2d', { willReadFrequently: true });
+            const pCtx = previewCanvas.getContext('2d');
+
+            const leadSlider = document.getElementById('leadSizeSlider');
+            const leadReadout = document.getElementById('leadSizeReadout');
+            const leadDotPreview = document.getElementById('leadDotPreview');
+            const activeToolLabel = document.getElementById('activeToolLabel');
+            const activeToolDot = document.getElementById('activeToolDot');
+            const pencilSpecText = document.getElementById('pencilSpecText');
+            const shapeHintBanner = document.getElementById('shapeHintBanner');
+            const freehandModeBtn = document.getElementById('freehandModeBtn');
+            const eraserBtn = document.getElementById('eraserBtn');
+            const undoBtn = document.getElementById('undoBtn');
+            const redoBtn = document.getElementById('redoBtn');
+
+            // --- 2. Paper Grain Pattern Generator ---
+            let paperGrainPattern = null;
+            function createPaperGrainPattern() {
+                const off = document.createElement('canvas');
+                off.width = 140;
+                off.height = 140;
+                const octx = off.getContext('2d');
+                octx.fillStyle = '#faf8f3';
+                octx.fillRect(0, 0, off.width, off.height);
+
+                const imgData = octx.getImageData(0, 0, off.width, off.height);
+                const data = imgData.data;
+                for (let i = 0; i < data.length; i += 4) {
+                    const grain = (Math.random() - 0.5) * 11;
+                    data[i] = Math.min(255, Math.max(0, 250 + grain));
+                    data[i + 1] = Math.min(255, Math.max(0, 248 + grain));
+                    data[i + 2] = Math.min(255, Math.max(0, 243 + grain));
+                    data[i + 3] = 255;
+                }
+                octx.putImageData(imgData, 0, 0);
+                paperGrainPattern = ctx.createPattern(off, 'repeat');
+            }
+
+            function fillPaperBackground(targetCtx, width, height) {
+                if (!paperGrainPattern) createPaperGrainPattern();
+                targetCtx.save();
+                targetCtx.fillStyle = paperGrainPattern || '#faf8f3';
+                targetCtx.fillRect(0, 0, width, height);
+                targetCtx.restore();
+            }
+
+            // --- 3. Responsive Canvas Sizing & State Preservation ---
+            function resizeCanvases(preserveDrawing = true) {
+                const rect = paperContainer.getBoundingClientRect();
+                const dpr = Math.min(window.devicePixelRatio || 1, 2);
+                const newW = Math.max(1, Math.floor(rect.width * dpr));
+                const newH = Math.max(1, Math.floor(rect.height * dpr));
+
+                if (drawingCanvas.width === newW && drawingCanvas.height === newH) return;
+
+                let tempCanvas = null;
+                if (preserveDrawing && drawingCanvas.width > 0 && drawingCanvas.height > 0) {
+                    tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = drawingCanvas.width;
+                    tempCanvas.height = drawingCanvas.height;
+                    tempCanvas.getContext('2d').drawImage(drawingCanvas, 0, 0);
+                }
+
+                drawingCanvas.width = newW;
+                drawingCanvas.height = newH;
+                previewCanvas.width = newW;
+                previewCanvas.height = newH;
+
+                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                pCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+                fillPaperBackground(ctx, rect.width, rect.height);
+
+                if (tempCanvas) {
+                    ctx.drawImage(
+                        tempCanvas,
+                        0, 0, tempCanvas.width, tempCanvas.height,
+                        0, 0, rect.width, rect.height
+                    );
+                } else {
+                    saveHistorySnapshot();
+                }
+            }
+
+            // --- 4. History (Undo / Redo) ---
+            function saveHistorySnapshot() {
+                if (drawingCanvas.width === 0 || drawingCanvas.height === 0) return;
+                const snapshot = ctx.getImageData(0, 0, drawingCanvas.width, drawingCanvas.height);
+                state.history.push(snapshot);
+                if (state.history.length > state.maxHistory) {
+                    state.history.shift();
+                }
+                state.redoStack = [];
+                updateHistoryButtons();
+            }
+
+            function undo() {
+                if (state.history.length <= 1) return;
+                const current = state.history.pop();
+                state.redoStack.push(current);
+                const previous = state.history[state.history.length - 1];
+                ctx.putImageData(previous, 0, 0);
+                updateHistoryButtons();
+            }
+
+            function redo() {
+                if (state.redoStack.length === 0) return;
+                const next = state.redoStack.pop();
+                state.history.push(next);
+                ctx.putImageData(next, 0, 0);
+                updateHistoryButtons();
+            }
+
+            function updateHistoryButtons() {
+                undoBtn.disabled = state.history.length <= 1;
+                redoBtn.disabled = state.redoStack.length === 0;
+            }
+
+            // --- 5. Material Physics & Brush Profile Calculator ---
+            function getBrushProperties() {
+                // Lead size percentage (1..100) mapped to realistic pixel radius
+                const baseRadius = 0.6 + (state.leadSizePercent / 100) * 18;
+
+                if (state.category === 'eraser') {
+                    return {
+                        color: '#faf8f3',
+                        rgb: [250, 248, 243],
+                        radius: Math.max(4, baseRadius * 1.8),
+                        opacity: 0.92,
+                        grain: 0.15,
+                        softness: 0.85,
+                        isEraser: true
+                    };
+                }
+
+                if (state.category === 'graphite') {
+                    // Calculate hardness index from -10 (10H) to +10 (10B)
+                    let level = 0;
+                    if (state.grade === 'HB') level = 0;
+                    else if (state.grade === 'F') level = -0.5;
+                    else if (state.grade.endsWith('H')) {
+                        const num = state.grade === 'H' ? 1 : parseInt(state.grade);
+                        level = -num; // -1 to -10
+                    } else if (state.grade.endsWith('B')) {
+                        const num = state.grade === 'B' ? 1 : parseInt(state.grade);
+                        level = num; // +1 to +10
+                    }
+
+                    // Normalized 0 (10H hardest) to 1 (10B softest)
+                    const t = (level + 10) / 20;
+                    // Harder = lighter silver-grey; Softer = deep dark graphite
+                    const shade = Math.round(168 - t * 146); // 168 (10H) down to 22 (10B)
+                    const opacity = 0.24 + t * 0.66;
+                    const widthFactor = 0.68 + t * 0.72;
+                    const grain = 0.22 + t * 0.55;
+
+                    return {
+                        color: `rgb(${shade}, ${shade}, ${shade + 2})`,
+                        rgb: [shade, shade, shade + 2],
+                        radius: Math.max(0.55, baseRadius * widthFactor),
+                        opacity,
+                        grain,
+                        softness: t,
+                        isEraser: false
+                    };
+                }
+
+                if (state.category === 'charcoal') {
+                    const presets = {
+                        'Soft':   { shade: 14, opacity: 0.88, widthFactor: 1.55, grain: 0.88 },
+                        'Medium': { shade: 30, opacity: 0.72, widthFactor: 1.25, grain: 0.76 },
+                        'Hard':   { shade: 48, opacity: 0.56, widthFactor: 0.92, grain: 0.64 }
+                    };
+                    const p = presets[state.grade] || presets['Medium'];
+                    return {
+                        color: `rgb(${p.shade}, ${p.shade}, ${p.shade})`,
+                        rgb: [p.shade, p.shade, p.shade],
+                        radius: Math.max(0.9, baseRadius * p.widthFactor),
+                        opacity: p.opacity,
+                        grain: p.grain,
+                        softness: 0.9,
+                        isEraser: false
+                    };
+                }
+
+                if (state.category === 'color') {
+                    const hex = state.colorHex;
+                    const r = parseInt(hex.slice(1, 3), 16);
+                    const g = parseInt(hex.slice(3, 5), 16);
+                    const b = parseInt(hex.slice(5, 7), 16);
+                    return {
+                        color: hex,
+                        rgb: [r, g, b],
+                        radius: Math.max(0.75, baseRadius * 1.1),
+                        opacity: 0.76,
+                        grain: 0.68, // Wax/oil colored pencil tooth grain
+                        softness: 0.6,
+                        isEraser: false
+                    };
+                }
+            }
+
+            // --- 6. Realistic Textured Stroke Renderer ---
+            function stampPoint(targetCtx, x, y, brush) {
+                const [r, g, b] = brush.rgb;
+                const rad = brush.radius;
+
+                if (brush.isEraser) {
+                    targetCtx.save();
+                    targetCtx.globalAlpha = brush.opacity;
+                    targetCtx.fillStyle = paperGrainPattern || '#faf8f3';
+                    targetCtx.beginPath();
+                    targetCtx.arc(x, y, rad, 0, Math.PI * 2);
+                    targetCtx.fill();
+                    targetCtx.restore();
+                    return;
+                }
+
+                targetCtx.save();
+
+                // Core graphite/charcoal/wax deposit
+                targetCtx.globalAlpha = brush.opacity * 0.42;
+                targetCtx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                targetCtx.beginPath();
+                targetCtx.arc(x, y, rad * 0.78, 0, Math.PI * 2);
+                targetCtx.fill();
+
+                // Paper-tooth micro-grain speckles around the tip
+                const particleCount = Math.max(3, Math.round(rad * 3.8 * brush.grain));
+                for (let i = 0; i < particleCount; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const dist = Math.pow(Math.random(), 0.65) * rad;
+                    const px = x + Math.cos(angle) * dist;
+                    const py = y + Math.sin(angle) * dist;
+                    const pSize = Math.max(0.55, (Math.random() * 0.35 + 0.15) * Math.min(rad, 3.2));
+
+                    targetCtx.globalAlpha = brush.opacity * (0.35 + Math.random() * 0.55);
+                    targetCtx.fillRect(px, py, pSize, pSize);
+                }
+
+                targetCtx.restore();
+            }
+
+            function drawTexturedSegment(targetCtx, x0, y0, x1, y1, brush) {
+                const dx = x1 - x0;
+                const dy = y1 - y0;
+                const dist = Math.hypot(dx, dy);
+                const step = Math.max(0.45, brush.radius * 0.28);
+                const steps = Math.max(1, Math.ceil(dist / step));
+
+                for (let i = 0; i <= steps; i++) {
+                    const t = i / steps;
+                    const x = x0 + dx * t;
+                    const y = y0 + dy * t;
+                    stampPoint(targetCtx, x, y, brush);
+                }
+            }
+
+            // --- 7. 2D Shape Geometry & Sketchy Rendering ---
+            function draw2DShape(targetCtx, shapeType, x0, y0, x1, y1, brush) {
+                const left = Math.min(x0, x1);
+                const top = Math.min(y0, y1);
+                const w = Math.abs(x1 - x0);
+                const h = Math.abs(y1 - y0);
+                if (w < 2 && h < 2) return;
+
+                const cx = left + w / 2;
+                const cy = top + h / 2;
+
+                // Build polygon vertices or path segments
+                let points = [];
+
+                if (shapeType === 'square') {
+                    points = [
+                        [left, top],
+                        [left + w, top],
+                        [left + w, top + h],
+                        [left, top + h],
+                        [left, top]
+                    ];
+                } else if (shapeType === 'roundrect') {
+                    const r = Math.min(w, h) * 0.22;
+                    const steps = 6;
+                    const corners = [
+                        { cx: left + w - r, cy: top + r, start: -Math.PI / 2, end: 0 },
+                        { cx: left + w - r, cy: top + h - r, start: 0, end: Math.PI / 2 },
+                        { cx: left + r, cy: top + h - r, start: Math.PI / 2, end: Math.PI },
+                        { cx: left + r, cy: top + r, start: Math.PI, end: Math.PI * 1.5 }
+                    ];
+                    corners.forEach(c => {
+                        for (let i = 0; i <= steps; i++) {
+                            const a = c.start + (c.end - c.start) * (i / steps);
+                            points.push([c.cx + Math.cos(a) * r, c.cy + Math.sin(a) * r]);
+                        }
+                    });
+                    points.push(points[0]);
+                } else if (shapeType === 'circle') {
+                    const rx = w / 2;
+                    const ry = h / 2;
+                    const segments = 48;
+                    for (let i = 0; i <= segments; i++) {
+                        const a = (i / segments) * Math.PI * 2;
+                        points.push([cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]);
+                    }
+                } else if (shapeType === 'triangle') {
+                    points = [
+                        [cx, top],
+                        [left + w, top + h],
+                        [left, top + h],
+                        [cx, top]
+                    ];
+                } else if (shapeType === 'pentagon') {
+                    const rx = w / 2;
+                    const ry = h / 2;
+                    for (let i = 0; i <= 5; i++) {
+                        const a = -Math.PI / 2 + (i * 2 * Math.PI) / 5;
+                        points.push([cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]);
+                    }
+                } else if (shapeType === 'hexagon') {
+                    const rx = w / 2;
+                    const ry = h / 2;
+                    for (let i = 0; i <= 6; i++) {
+                        const a = -Math.PI / 2 + (i * 2 * Math.PI) / 6;
+                        points.push([cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]);
+                    }
+                }
+
+                for (let i = 0; i < points.length - 1; i++) {
+                    drawTexturedSegment(
+                        targetCtx,
+                        points[i][0], points[i][1],
+                        points[i + 1][0], points[i + 1][1],
+                        brush
+                    );
+                }
+            }
+
+            // --- 8. Pointer / Touch / Stylus Input Handlers ---
+            function getCanvasCoords(e) {
+                const rect = previewCanvas.getBoundingClientRect();
+                return {
+                    x: e.clientX - rect.left,
+                    y: e.clientY - rect.top
+                };
+            }
+
+            function renderCursorRing(x, y) {
+                const rect = previewCanvas.getBoundingClientRect();
+                pCtx.clearRect(0, 0, rect.width, rect.height);
+                const brush = getBrushProperties();
+                pCtx.save();
+                pCtx.strokeStyle = state.category === 'eraser' ? '#8c3b3b' : 'rgba(43, 41, 39, 0.55)';
+                pCtx.lineWidth = 1;
+                pCtx.beginPath();
+                pCtx.arc(x, y, Math.max(2.5, brush.radius), 0, Math.PI * 2);
+                pCtx.stroke();
+                pCtx.restore();
+            }
+
+            previewCanvas.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                previewCanvas.setPointerCapture(e.pointerId);
+                const { x, y } = getCanvasCoords(e);
+                state.isDrawing = true;
+                state.startX = x;
+                state.startY = y;
+                state.lastX = x;
+                state.lastY = y;
+
+                if (!state.activeShape) {
+                    const brush = getBrushProperties();
+                    stampPoint(ctx, x, y, brush);
+                }
+            });
+
+            previewCanvas.addEventListener('pointermove', (e) => {
+                const { x, y } = getCanvasCoords(e);
+                const rect = previewCanvas.getBoundingClientRect();
+
+                if (!state.isDrawing) {
+                    renderCursorRing(x, y);
+                    return;
+                }
+
+                e.preventDefault();
+                const brush = getBrushProperties();
+
+                if (state.activeShape) {
+                    pCtx.clearRect(0, 0, rect.width, rect.height);
+                    draw2DShape(pCtx, state.activeShape, state.startX, state.startY, x, y, brush);
+                } else {
+                    drawTexturedSegment(ctx, state.lastX, state.lastY, x, y, brush);
+                    state.lastX = x;
+                    state.lastY = y;
+                    renderCursorRing(x, y);
+                }
+            });
+
+            function finishStroke(e) {
+                if (!state.isDrawing) return;
+                const { x, y } = getCanvasCoords(e);
+                const rect = previewCanvas.getBoundingClientRect();
+
+                if (state.activeShape) {
+                    pCtx.clearRect(0, 0, rect.width, rect.height);
+                    const brush = getBrushProperties();
+                    draw2DShape(ctx, state.activeShape, state.startX, state.startY, x, y, brush);
+                }
+
+                state.isDrawing = false;
+                saveHistorySnapshot();
+                renderCursorRing(x, y);
+            }
+
+            previewCanvas.addEventListener('pointerup', finishStroke);
+            previewCanvas.addEventListener('pointercancel', finishStroke);
+            previewCanvas.addEventListener('pointerleave', () => {
+                const rect = previewCanvas.getBoundingClientRect();
+                if (!state.isDrawing) {
+                    pCtx.clearRect(0, 0, rect.width, rect.height);
+                }
+            });
+
+            // --- 9. Dynamic UI & Bottom Pencil Illustration Sync ---
+            function updateInstrumentUI() {
+                // Clear all active button highlights
+                document.querySelectorAll('.grade-btn').forEach(btn => btn.classList.remove('active'));
+                document.querySelectorAll('.color-swatch').forEach(btn => btn.classList.remove('active'));
+                eraserBtn.classList.remove('bg-[#2b2927]', 'text-[#faf8f3]');
+                eraserBtn.classList.add('bg-[#faf8f3]', 'text-[#242321]');
+
+                // Highlight active tool
+                if (state.category === 'eraser') {
+                    eraserBtn.classList.remove('bg-[#faf8f3]', 'text-[#242321]');
+                    eraserBtn.classList.add('bg-[#2b2927]', 'text-[#faf8f3]');
+                } else if (state.category === 'color') {
+                    const activeSwatch = document.querySelector(`.color-swatch[data-color="${state.colorHex}"]`);
+                    if (activeSwatch) activeSwatch.classList.add('active');
+                } else {
+                    const activeGradeBtn = document.querySelector(`.grade-btn[data-category="${state.category}"][data-grade="${state.grade}"]`);
+                    if (activeGradeBtn) activeGradeBtn.classList.add('active');
+                }
+
+                // Update Shape Buttons
+                document.querySelectorAll('.shape-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.shape === state.activeShape);
+                });
+
+                if (state.activeShape) {
+                    shapeHintBanner.classList.remove('hidden');
+                    freehandModeBtn.textContent = 'Back to Freehand';
+                    freehandModeBtn.classList.remove('bg-[#2b2927]', 'text-[#faf8f3]');
+                    freehandModeBtn.classList.add('bg-[#d96b1e]', 'text-white');
+                } else {
+                    shapeHintBanner.classList.add('hidden');
+                    freehandModeBtn.textContent = 'Freehand Active';
+                    freehandModeBtn.classList.remove('bg-[#d96b1e]', 'text-white');
+                    freehandModeBtn.classList.add('bg-[#2b2927]', 'text-[#faf8f3]');
+                }
+
+                // Update Lead Size Readout & Dot
+                leadReadout.textContent = `${state.leadSizePercent}%`;
+                const dotPx = Math.max(2, Math.min(18, Math.round(2 + (state.leadSizePercent / 100) * 16)));
+                leadDotPreview.style.width = `${dotPx}px`;
+                leadDotPreview.style.height = `${dotPx}px`;
+
+                // Update Top Badge & Bottom Horizontal Pencil SVG Illustration
+                const brush = getBrushProperties();
+                const barrel = document.getElementById('svgBarrelMain');
+                const leadTip = document.getElementById('svgLeadTip');
+                const barrelLabel = document.getElementById('svgBarrelLabel');
+                const woodCone = document.getElementById('svgWoodCone');
+
+                if (state.category === 'graphite') {
+                    activeToolLabel.textContent = `Graphite • ${state.grade}`;
+                    activeToolDot.style.backgroundColor = brush.color;
+                    pencilSpecText.textContent = `${state.grade} • ${state.leadSizePercent}% Lead`;
+
+                    barrel.setAttribute('fill', '#e2b245'); // Classic artist yellow-gold lacquer
+                    woodCone.setAttribute('fill', '#e7c39c');
+                    leadTip.setAttribute('fill', brush.color);
+                    barrelLabel.setAttribute('fill', '#1f1e1c');
+                    barrelLabel.textContent = `GRAPHITE • ${state.grade}`;
+                } else if (state.category === 'charcoal') {
+                    activeToolLabel.textContent = `Charcoal • ${state.grade}`;
+                    activeToolDot.style.backgroundColor = '#1c1b1a';
+                    pencilSpecText.textContent = `${state.grade} Charcoal • ${state.leadSizePercent}%`;
+
+                    barrel.setAttribute('fill', '#32302e'); // Matte black charcoal wood barrel
+                    woodCone.setAttribute('fill', '#d9b38c');
+                    leadTip.setAttribute('fill', '#141414');
+                    barrelLabel.setAttribute('fill', '#f5f2eb');
+                    barrelLabel.textContent = `CHARCOAL • ${state.grade.toUpperCase()}`;
+                } else if (state.category === 'color') {
+                    activeToolLabel.textContent = `Colour • ${state.grade}`;
+                    activeToolDot.style.backgroundColor = state.colorHex;
+                    pencilSpecText.textContent = `${state.grade} • ${state.leadSizePercent}%`;
+
+                    barrel.setAttribute('fill', state.colorHex);
+                    woodCone.setAttribute('fill', '#e7c39c');
+                    leadTip.setAttribute('fill', state.colorHex);
+                    barrelLabel.setAttribute('fill', '#ffffff');
+                    barrelLabel.textContent = state.grade.toUpperCase();
+                } else if (state.category === 'eraser') {
+                    activeToolLabel.textContent = `Kneaded Eraser`;
+                    activeToolDot.style.backgroundColor = '#d98a8c';
+                    pencilSpecText.textContent = `Eraser • ${state.leadSizePercent}%`;
+
+                    barrel.setAttribute('fill', '#d98a8c');
+                    woodCone.setAttribute('fill', '#f2d5d6');
+                    leadTip.setAttribute('fill', '#faf8f3');
+                    barrelLabel.setAttribute('fill', '#1f1e1c');
+                    barrelLabel.textContent = 'ARTIST ERASER';
+                }
+            }
+
+            // --- 10. Build Sidebar Controls Dynamically ---
+            function populateToolPanels() {
+                const hardGrid = document.getElementById('hardPencilsGrid');
+                HARD_GRADES.forEach(grade => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'grade-btn py-1 rounded-md text-xs font-semibold text-center';
+                    btn.textContent = grade;
+                    btn.dataset.category = 'graphite';
+                    btn.dataset.grade = grade;
+                    btn.addEventListener('click', () => {
+                        state.category = 'graphite';
+                        state.grade = grade;
+                        updateInstrumentUI();
+                    });
+                    hardGrid.appendChild(btn);
+                });
+
+                const medGrid = document.getElementById('mediumPencilsGrid');
+                MEDIUM_GRADES.forEach(grade => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'grade-btn py-1 rounded-md text-xs font-bold text-center';
+                    btn.textContent = grade;
+                    btn.dataset.category = 'graphite';
+                    btn.dataset.grade = grade;
+                    btn.addEventListener('click', () => {
+                        state.category = 'graphite';
+                        state.grade = grade;
+                        updateInstrumentUI();
+                    });
+                    medGrid.appendChild(btn);
+                });
+
+                const softGrid = document.getElementById('softPencilsGrid');
+                SOFT_GRADES.forEach(grade => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'grade-btn py-1 rounded-md text-xs font-semibold text-center';
+                    btn.textContent = grade;
+                    btn.dataset.category = 'graphite';
+                    btn.dataset.grade = grade;
+                    btn.addEventListener('click', () => {
+                        state.category = 'graphite';
+                        state.grade = grade;
+                        updateInstrumentUI();
+                    });
+                    softGrid.appendChild(btn);
+                });
+
+                const charcoalGrid = document.getElementById('charcoalGrid');
+                CHARCOAL_GRADES.forEach(grade => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'grade-btn py-1.5 rounded-md text-xs font-semibold text-center';
+                    btn.textContent = grade;
+                    btn.dataset.category = 'charcoal';
+                    btn.dataset.grade = grade;
+                    btn.addEventListener('click', () => {
+                        state.category = 'charcoal';
+                        state.grade = grade;
+                        updateInstrumentUI();
+                    });
+                    charcoalGrid.appendChild(btn);
+                });
+
+                const colorBody = document.getElementById('colorPencilsBody');
+                COLOR_SWATCHES.forEach(swatch => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.title = swatch.name;
+                    btn.className = 'color-swatch w-6 h-6 sm:w-7 sm:h-7 rounded-full border-2 border-[#3a3835] cursor-pointer';
+                    btn.style.backgroundColor = swatch.hex;
+                    btn.dataset.color = swatch.hex;
+                    btn.addEventListener('click', () => {
+                        state.category = 'color';
+                        state.grade = swatch.name;
+                        state.colorHex = swatch.hex;
+                        updateInstrumentUI();
+                    });
+                    colorBody.appendChild(btn);
+                });
+
+                // Custom Color Picker Swatch
+                const customWrapper = document.createElement('label');
+                customWrapper.title = 'Custom Colour Pencil';
+                customWrapper.className = 'color-swatch w-6 h-6 sm:w-7 sm:h-7 rounded-full border-2 border-[#3a3835] cursor-pointer flex items-center justify-center bg-gradient-to-tr from-pink-500 via-amber-400 to-cyan-500 overflow-hidden relative';
+                customWrapper.innerHTML = `<span class="text-[11px] font-bold text-white drop-shadow">+</span>`;
+                const colorInput = document.createElement('input');
+                colorInput.type = 'color';
+                colorInput.value = '#1f5aa6';
+                colorInput.className = 'opacity-0 absolute inset-0 w-full h-full cursor-pointer';
+                colorInput.addEventListener('input', (e) => {
+                    state.category = 'color';
+                    state.grade = 'Custom Shade';
+                    state.colorHex = e.target.value;
+                    updateInstrumentUI();
+                });
+                customWrapper.appendChild(colorInput);
+                colorBody.appendChild(customWrapper);
+            }
+
+            // --- 11. Event Bindings ---
+            leadSlider.addEventListener('input', (e) => {
+                state.leadSizePercent = parseInt(e.target.value, 10);
+                updateInstrumentUI();
+            });
+
+            document.querySelectorAll('.shape-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const chosen = btn.dataset.shape;
+                    state.activeShape = (state.activeShape === chosen) ? null : chosen;
+                    if (state.category === 'eraser') {
+                        state.category = 'graphite';
+                        state.grade = 'HB';
+                    }
+                    updateInstrumentUI();
+                });
+            });
+
+            freehandModeBtn.addEventListener('click', () => {
+                state.activeShape = null;
+                updateInstrumentUI();
+            });
+
+            eraserBtn.addEventListener('click', () => {
+                if (state.category === 'eraser') {
+                    state.category = 'graphite';
+                    state.grade = 'HB';
+                } else {
+                    state.category = 'eraser';
+                    state.activeShape = null;
+                }
+                updateInstrumentUI();
+            });
+
+            // Collapsible 'X' buttons matching wireframe sketch
+            const toggleGraphiteBtn = document.getElementById('toggleGraphiteBtn');
+            const graphiteBody = document.getElementById('graphiteBody');
+            toggleGraphiteBtn.addEventListener('click', () => {
+                const isHidden = graphiteBody.classList.toggle('hidden');
+                toggleGraphiteBtn.textContent = isHidden ? '+' : '✕';
+            });
+
+            const toggleColorBtn = document.getElementById('toggleColorBtn');
+            const colorPencilsBody = document.getElementById('colorPencilsBody');
+            toggleColorBtn.addEventListener('click', () => {
+                const isHidden = colorPencilsBody.classList.toggle('hidden');
+                toggleColorBtn.textContent = isHidden ? '+' : '✕';
+            });
+
+            // Undo / Redo / Keyboard Shortcuts
+            undoBtn.addEventListener('click', undo);
+            redoBtn.addEventListener('click', redo);
+
+            window.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+                    e.preventDefault();
+                    if (e.shiftKey) redo();
+                    else undo();
+                } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+                    e.preventDefault();
+                    redo();
+                } else if (e.key === 'Escape' && state.activeShape) {
+                    state.activeShape = null;
+                    updateInstrumentUI();
+                }
+            });
+
+            // Clear Paper Modal
+            const clearModal = document.getElementById('clearModal');
+            document.getElementById('clearBtn').addEventListener('click', () => {
+                clearModal.classList.remove('hidden');
+                clearModal.classList.add('flex');
+            });
+            document.getElementById('cancelClearBtn').addEventListener('click', () => {
+                clearModal.classList.add('hidden');
+                clearModal.classList.remove('flex');
+            });
+            document.getElementById('confirmClearBtn').addEventListener('click', () => {
+                const rect = paperContainer.getBoundingClientRect();
+                fillPaperBackground(ctx, rect.width, rect.height);
+                saveHistorySnapshot();
+                clearModal.classList.add('hidden');
+                clearModal.classList.remove('flex');
+                showToast('Paper cleared');
+            });
+
+            // Export Sketch to PNG
+            function showToast(msg) {
+                const toast = document.getElementById('toastBanner');
+                toast.textContent = msg;
+                toast.classList.remove('opacity-0');
+                setTimeout(() => toast.classList.add('opacity-0'), 2200);
+            }
+
+            document.getElementById('saveBtn').addEventListener('click', () => {
+                const link = document.createElement('a');
+                const timestamp = new Date().toISOString().slice(0, 10);
+                link.download = `ITS-MY-PENCIL-${timestamp}.png`;
+                link.href = drawingCanvas.toDataURL('image/png');
+                link.click();
+                showToast('Sketch exported as PNG!');
+            });
+
+            // Window Resize Listener
+            let resizeTimer;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(() => resizeCanvases(true), 120);
+            });
+
+            // --- 12. Initialize Studio ---
+            window.addEventListener('DOMContentLoaded', () => {
+                populateToolPanels();
+                resizeCanvases(false);
+                updateInstrumentUI();
+            });
+        })();
+    </script>
+</body>
+</html>
